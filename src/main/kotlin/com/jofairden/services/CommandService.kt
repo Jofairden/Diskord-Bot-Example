@@ -1,15 +1,12 @@
 package com.jofairden.services
 
-import com.jessecorbett.diskord.dsl.Bot
-import com.jessecorbett.diskord.dsl.command
-import com.jessecorbett.diskord.dsl.commands
+import com.jessecorbett.diskord.api.model.Message
 import com.jofairden.BotCommand
+import com.jofairden.DiskordBot
 import org.springframework.stereotype.Service
-import javax.annotation.PostConstruct
 
 @Service
 class CommandService(
-    private val bot: Bot,
     private val botCommands: List<BotCommand>
 ) {
 
@@ -17,14 +14,14 @@ class CommandService(
         private const val PREFIX = "?"
     }
 
-    @PostConstruct
-    fun init() {
-        bot.commands(PREFIX) {
-            botCommands.forEach {
-                command(it.trigger) {
-                    it.action(this)
-                }
+    suspend fun handleMessage(listener: DiskordBot, message: Message) {
+        if (message.content.startsWith(PREFIX)) {
+            botCommands.filter {
+                message.content.startsWith("$PREFIX${it.trigger}")
+            }.forEach {
+                it.action(listener, message)
             }
         }
     }
+
 }

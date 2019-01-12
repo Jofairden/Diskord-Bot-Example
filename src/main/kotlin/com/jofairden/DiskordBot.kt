@@ -1,66 +1,40 @@
 package com.jofairden
 
-import com.jessecorbett.diskord.dsl.Bot
+import com.jessecorbett.diskord.api.model.Message
+import com.jessecorbett.diskord.api.websocket.DiscordWebSocket
 import com.jessecorbett.diskord.util.ClientStore
 import com.jessecorbett.diskord.util.EnhancedEventListener
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import org.springframework.boot.Banner
-import org.springframework.boot.WebApplicationType
-import org.springframework.boot.autoconfigure.SpringBootApplication
-import org.springframework.boot.runApplication
-import org.springframework.context.ConfigurableApplicationContext
-import java.io.File
+import com.jofairden.services.CommandService
+import org.springframework.beans.factory.annotation.Autowired
 
 
-@SpringBootApplication
-open class DiskordBot {
+class DiskordBot(
+    token: String
+) : EnhancedEventListener(token) {
 
     companion object {
-        lateinit var appContext: ConfigurableApplicationContext
-        lateinit var bot: Bot
+        lateinit var webSocket: DiscordWebSocket
         lateinit var clientStore: ClientStore
+    }
 
-        @JvmStatic
-        fun main(args: Array<String>) = runBlocking {
-            val job = GlobalScope.launch {
-                // We need to read our token safely
-                // NOBODY MUST KNOW YOUR BOT TOKEN! KEEP IT SAFE!
-                // Recommended is to read it from a (local) file or grab
-                // it from an environment variable
-                bot = Bot(getBotToken(), false)
-            }
-            job.join()
+    init {
+        webSocket = DiscordWebSocket(token, this)
+        Companion.clientStore = clientStore
+    }
 
-            // Make clientStore accessible and take it over
-            EnhancedEventListener::class.java.getDeclaredField("clientStore")
-                .let {
-                    it.isAccessible = true
-                    val value = it.get(bot)
-                    clientStore = value as ClientStore
-                }
+    @Autowired
+    private lateinit var commandService: CommandService
 
-            // Start Spring
-            appContext = runApplication<DiskordBot>(*args) {
-                setBannerMode(Banner.Mode.CONSOLE)
-                webApplicationType = WebApplicationType.NONE
-            }
+    fun start() {
+        val factory = KtApp.appContext.autowireCapableBeanFactory
+        factory.autowireBean(this)
+        factory.initializeBean(this, DiskordBot::class.java.name)
 
-            // Start bot
-            bot.start()
-        }
+        webSocket.start()
+    }
 
-        private fun getBotToken(): String {
-            val classLoader = DiskordBot::class.java.classLoader
-            val file = File(classLoader.getResource("bot.token")!!.file)
-
-            if (!file.canRead()) {
-                throw RuntimeException("Unable to read bot.token file")
-            }
-
-            return file.readText()
-        }
+    override suspend fun onMessageCreate(message: Message) {
+        commandService.handleMessage(this, message)
     }
 }
 

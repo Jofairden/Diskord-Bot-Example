@@ -1,7 +1,7 @@
 package com.jofairden.config
 
-import com.jessecorbett.diskord.dsl.Bot
 import com.jofairden.DiskordBot
+import com.jofairden.KtApp
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration
 open class BeanConfig {
 
     @Bean()
-    open fun getBot(): Bot {
-        return DiskordBot.bot
+    open fun getBot(): DiskordBot {
+        return KtApp.bot
     }
 }

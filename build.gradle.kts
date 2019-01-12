@@ -50,7 +50,7 @@ dependencies {
 
 application {
     // Define the main class for the application.
-    mainClassName = "com.jofairden.DiskordBot.kt"
+    mainClassName = projectMainClass
 }
 
 java {
@@ -62,6 +62,7 @@ java {
 val startAppNotifyTask = tasks.register("startAppNotify") {
     println("Application is starting...")
 }!!
+
 
 tasks {
     withType<BootJar> {
